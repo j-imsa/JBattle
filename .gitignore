@@ -31,3 +31,6 @@ build/
 .mvn/
 mvnw
 mvnw.cmd
+
+# Local game data (file-based DB)
+data/
