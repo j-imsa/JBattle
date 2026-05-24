@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Login / signup view. Controller dependencies are injected after load. -->
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="ir.ac.kashanu.jbattle.ui.LoginController"
+           styleClass="login-root"
+           stylesheets="@../style/login.css">
+    <VBox alignment="CENTER" spacing="14" maxWidth="380">
+        <padding>
+            <Insets top="40" right="40" bottom="40" left="40"/>
+        </padding>
+        <Label text="JBattle: Goblin Siege" styleClass="title"/>
+        <Label text="Log in, or sign up, to enter the battle." styleClass="subtitle"/>
+        <TextField fx:id="username" promptText="Username"/>
+        <PasswordField fx:id="password" promptText="Password" onAction="#onLogin"/>
+        <HBox alignment="CENTER" spacing="10">
+            <Button text="Log In" defaultButton="true" onAction="#onLogin"/>
+            <Button text="Sign Up" onAction="#onSignup"/>
+        </HBox>
+        <Label fx:id="message" wrapText="true"/>
+    </VBox>
+
+    <!-- Footer pinned to the bottom-centre of the screen. -->
+    <Label StackPane.alignment="BOTTOM_CENTER" styleClass="footer"
+           text="JBattle: Goblin Siege — v1.0  •  Developed by Iman Salehi">
+        <StackPane.margin>
+            <Insets bottom="14"/>
+        </StackPane.margin>
+    </Label>
+</StackPane>

@@ -1,0 +1,33 @@
+/* Battle screen styling. Referenced from fxml/game.fxml. The health bar's
+   accent colour is set dynamically in GameController as the hero takes damage. */
+
+.top-bar {
+    -fx-background-color: #20202c;
+}
+
+.hero-name {
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.heart {
+    -fx-text-fill: #f44336;
+    -fx-font-size: 16px;
+}
+
+.health-label {
+    -fx-text-fill: white;
+}
+
+.arena {
+    -fx-background-color: radial-gradient(center 50% 50%, radius 80%, #3c5a2e, #213018);
+}
+
+.board {
+    -fx-background-color: #1a1a26;
+}
+
+.board-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}

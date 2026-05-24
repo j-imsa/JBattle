@@ -10,20 +10,14 @@ import ir.ac.kashanu.jbattle.model.PlayRecord;
 import ir.ac.kashanu.jbattle.persistence.PlayRepository;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
@@ -34,69 +28,41 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The responsive battle screen: an arena where sprites move, a player health bar,
- * and a story board on the right. Implements {@link GameListener}; all engine
- * callbacks arrive off the FX thread and are bounced through {@link Platform#runLater}.
+ * Controller for {@code fxml/game.fxml}: the responsive battle screen. The static
+ * chrome (top bar, arena, story board) lives in the FXML; this class owns the
+ * dynamic parts — the sprites added to the arena, click-to-move, the render loop
+ * and the {@link GameListener} callbacks.
+ *
+ * <p>All engine callbacks arrive off the FX thread and are bounced through
+ * {@link Platform#runLater}. Dependencies are injected via {@link #init} after the
+ * loader builds the view (FXMLLoader uses the no-arg constructor).
  */
-public class GameScreen implements GameListener {
+public class GameController implements GameListener {
 
     private static final double SPRITE = 48;
 
-    private final String username;
-    private final PlayRepository plays;
-    private final Runnable onLogout;
+    @FXML private Pane arena;
+    @FXML private TextArea storyBoard;
+    @FXML private ProgressBar healthBar;
+    @FXML private Label healthLabel;
+    @FXML private Label heroLabel;
+    @FXML private Button newPlayButton;
 
-    private final BorderPane root = new BorderPane();
-    private final Pane arena = new Pane();
-    private final TextArea storyBoard = new TextArea();
-    private final ProgressBar healthBar = new ProgressBar(1.0);
-    private final Label healthLabel = new Label();
-    private final Button newPlayButton = new Button("New Play");
+    private String username;
+    private PlayRepository plays;
+    private Runnable onLogout;
 
     private final Map<GameCharacter, ImageView> sprites = new HashMap<>();
     private final Map<CharacterType, Image> imageCache = new EnumMap<>(CharacterType.class);
     private final Circle targetMarker = new Circle(7);
 
     private GameEngine engine;
-    private final AnimationTimer renderLoop;
+    private AnimationTimer renderLoop;
 
-    public GameScreen(String username, PlayRepository plays, Runnable onLogout) {
-        this.username = username;
-        this.plays = plays;
-        this.onLogout = onLogout;
-        build();
-        this.renderLoop = createRenderLoop();
-        renderLoop.start();
-    }
-
-    public BorderPane getRoot() {
-        return root;
-    }
-
-    private void build() {
-        // --- top bar: identity, health, controls ---
-        Label name = new Label("Hero: " + username);
-        name.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
-        Label heart = new Label("❤");
-        heart.setStyle("-fx-text-fill: #f44336; -fx-font-size: 16px;");
-        healthBar.setPrefWidth(220);
-        healthLabel.setStyle("-fx-text-fill: white;");
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        newPlayButton.setOnAction(e -> startNewPlay());
-        Button logout = new Button("Logout");
-        logout.setOnAction(e -> doLogout());
-
-        HBox top = new HBox(12, name, heart, healthBar, healthLabel, spacer, newPlayButton, logout);
-        top.setAlignment(Pos.CENTER_LEFT);
-        top.setPadding(new Insets(10));
-        top.setStyle("-fx-background-color: #20202c;");
-
-        // --- arena (grows to fill the center) ---
-        arena.setStyle("-fx-background-color: radial-gradient(center 50% 50%, radius 80%, #3c5a2e, #213018);");
-        arena.setMinSize(400, 300);
+    /** Called by FXMLLoader once the @FXML fields are injected. */
+    @FXML
+    private void initialize() {
+        // Keep sprites clipped to the arena as it resizes.
         Rectangle clip = new Rectangle();
         clip.widthProperty().bind(arena.widthProperty());
         clip.heightProperty().bind(arena.heightProperty());
@@ -117,27 +83,39 @@ public class GameScreen implements GameListener {
                 targetMarker.setVisible(true);
             }
         });
+    }
 
-        // --- story board on the right ---
-        Label boardTitle = new Label("📜 Battle Chronicle");
-        boardTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
-        storyBoard.setEditable(false);
-        storyBoard.setWrapText(true);
-        storyBoard.setPrefWidth(340);
-        storyBoard.setMinWidth(280);
-        VBox.setVgrow(storyBoard, Priority.ALWAYS);
-        VBox board = new VBox(6, boardTitle, storyBoard);
-        board.setPadding(new Insets(10));
-        board.setStyle("-fx-background-color: #1a1a26;");
+    /**
+     * Injects backend dependencies and starts the render loop. Must be called once,
+     * after the FXML is loaded.
+     */
+    public void init(String username, PlayRepository plays, Runnable onLogout) {
+        this.username = username;
+        this.plays = plays;
+        this.onLogout = onLogout;
 
-        root.setTop(top);
-        root.setCenter(arena);
-        root.setRight(board);
-
+        heroLabel.setText("Hero: " + username);
         storyBoard.appendText("Welcome, " + username + "!\n");
         appendHistory();
         storyBoard.appendText("\nPress \"New Play\" to begin the siege.\n");
         updateHealthDisplay(1.0, CharacterType.PLAYER.getMaxHealth());
+
+        renderLoop = createRenderLoop();
+        renderLoop.start();
+    }
+
+    @FXML
+    private void onNewPlay() {
+        startNewPlay();
+    }
+
+    @FXML
+    private void onLogout() {
+        if (engine != null) {
+            engine.stop();
+        }
+        renderLoop.stop();
+        onLogout.run();
     }
 
     private void startNewPlay() {
@@ -232,14 +210,6 @@ public class GameScreen implements GameListener {
             }
             return new Image(stream);
         });
-    }
-
-    private void doLogout() {
-        if (engine != null) {
-            engine.stop();
-        }
-        renderLoop.stop();
-        onLogout.run();
     }
 
     // --- GameListener (called off the FX thread) ------------------------------
